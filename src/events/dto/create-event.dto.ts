@@ -3,4 +3,5 @@ export class CreateEventDto {
   location: string;
   date: string;
   hour: string;
+  description?: string;
 }
