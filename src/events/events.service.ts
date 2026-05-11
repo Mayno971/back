@@ -1,56 +1,93 @@
-import { Injectable } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 
+export interface EventEntity {
+  id: number;
+  title: string;
+  description?: string;
+  date: string;
+  location: string;
+
+  createdByUserId: number;
+  status: 'DRAFT' | 'PUBLISHED';
+
+  participants: number[];
+}
+
 @Injectable()
 export class EventsService {
-  private events: any[] = [];
+  private events: EventEntity[] = [];
 
-  create(createEventDto: CreateEventDto) {
-    const newEvent = {
+  create(createEventDto: CreateEventDto, userId: number): EventEntity {
+    const newEvent: EventEntity = {
       id: Date.now(),
       ...createEventDto,
+      createdByUserId: userId,
+      status: 'DRAFT',
+      participants: [],
     };
 
     this.events.push(newEvent);
     return newEvent;
   }
 
-  findAll() {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+  publish(eventId: number, userId: number): EventEntity {
+    const event = this.findOne(eventId);
+
+    if (event.createdByUserId !== userId) {
+      throw new ForbiddenException('Vous ne pouvez pas publier cet évènement');
+    }
+
+    event.status = 'PUBLISHED';
+    return event;
+  }
+
+  findAll(): EventEntity[] {
     return this.events;
   }
 
-  findOne(id: number) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
-    return this.events.find((event) => event.id === id);
+  findOne(id: number): EventEntity {
+    const event = this.events.find((e) => e.id === id);
+    if (!event) throw new NotFoundException('Évènement introuvable');
+    return event;
   }
 
-  update(id: number, updateEventDto: UpdateEventDto) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    const index = this.events.findIndex((event) => event.id === id);
+  update(
+    id: number,
+    updateEventDto: UpdateEventDto,
+    userId: number,
+  ): EventEntity {
+    const event = this.findOne(id);
 
-    if (index === -1) return null;
+    if (event.createdByUserId !== userId) {
+      throw new ForbiddenException('Modification interdite');
+    }
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    this.events[index] = {
-      ...this.events[index],
-      ...updateEventDto,
-    };
-
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-    return this.events[index];
+    Object.assign(event, updateEventDto);
+    return event;
   }
 
-  remove(id: number) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    const index = this.events.findIndex((event) => event.id === id);
+  remove(id: number, userId: number): EventEntity {
+    const index = this.events.findIndex((e) => e.id === id);
+    if (index === -1) throw new NotFoundException();
 
-    if (index === -1) return null;
+    if (this.events[index].createdByUserId !== userId) {
+      throw new ForbiddenException();
+    }
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const [deleted] = this.events.splice(index, 1);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-    return deleted;
+    return this.events.splice(index, 1)[0];
+  }
+
+  addParticipant(eventId: number, userId: number) {
+    const event = this.findOne(eventId);
+
+    if (!event.participants.includes(userId)) {
+      event.participants.push(userId);
+    }
   }
 }

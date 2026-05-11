@@ -24,7 +24,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (!payload?.sub || !payload?.role) {
       throw new UnauthorizedException('JWT invalide');
     }
-
+    console.log('JWT chargé');
     return {
       userId: payload.sub,
       email: payload.email,
