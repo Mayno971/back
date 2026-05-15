@@ -26,7 +26,6 @@ export class EventsService {
   async addParticipant(eventId: number, userId: number): Promise<Event | null> {
     const event = await this.findOne(eventId);
     if (!event) return null;
-    
     const participantIds = event.participantIds || [];
     if (!participantIds.includes(userId)) {
       participantIds.push(userId);
