@@ -1,4 +1,5 @@
-import { IsEmail, IsNotEmpty, MinLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, MinLength, IsOptional, IsEnum } from 'class-validator';
+import { Role } from '../roles.enum';
 
 export class RegisterDto {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-call
@@ -14,4 +15,8 @@ export class RegisterDto {
     message: 'Le mot de passe doit contenir au moins 8 caractères',
   })
   password: string;
+
+  @IsOptional()
+  @IsEnum(Role, { message: 'Rôle invalide' })
+  role?: Role;
 }

@@ -16,23 +16,8 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  private users = [
-    {
-      id: 1,
-      email: 'org@test.com',
-      passwordHash: bcrypt.hashSync('password123', 10),
-      role: Role.ORGANIZER,
-    },
-    {
-      id: 2,
-      email: 'user@test.com',
-      passwordHash: bcrypt.hashSync('password123', 10),
-      role: Role.PARTICIPANT,
-    },
-  ];
-
   async register(registerDto: RegisterDto) {
-    const { email, password } = registerDto;
+    const { email, password, role } = registerDto;
     const existingUser = await this.usersService.findOneByEmail(email);
     if (existingUser) {
       throw new ConflictException('Un utilisateur avec cet email existe déjà');
@@ -44,15 +29,16 @@ export class AuthService {
     const user = await this.usersService.create({
       email,
       passwordHash: hashedPasswords,
+      ...(role && { role }),
     });
-    const payload = { sub: user.id, email: user.email };
+    const payload = { sub: user.id, email: user.email, role: user.role };
     return {
       access_token: await this.jwtService.signAsync(payload),
     };
   }
 
   async login(email: string, password: string) {
-    const user = this.users.find((u) => u.email === email);
+    const user = await this.usersService.findOneByEmail(email);
 
     if (!user) {
       throw new UnauthorizedException('Identifiants invalides');
@@ -71,7 +57,7 @@ export class AuthService {
     };
 
     return {
-      access_token: this.jwtService.sign(payload),
+      access_token: await this.jwtService.signAsync(payload),
     };
   }
 }
