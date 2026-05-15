@@ -28,4 +28,5 @@ export class Event {
 
   @Column({ type: 'simple-json', nullable: true })
   participantIds: number[];
+  creator: any;
 }
