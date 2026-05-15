@@ -1,17 +1,17 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
-import { Role } from '../auth/roles.enum';
+import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
+import { Event } from '../events/event.entity';
 
-@Entity('users')
+@Entity()
 export class User {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-  @Column()
+  @Column({ unique: true })
   email: string;
 
   @Column()
   passwordHash: string;
 
-  @Column({ default: Role.USER })
-  role: string;
+  @OneToMany(() => Event, (event) => event.creator)
+  events: Event[];
 }
