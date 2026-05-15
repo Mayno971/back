@@ -12,9 +12,11 @@ export class InvitationsService {
 
   constructor(private readonly eventsService: EventsService) {}
 
-  invite(eventId: number, inviterId: number, invitedUserId: number) {
-    const event = this.eventsService.findOne(eventId);
+  async invite(eventId: number, inviterId: number, invitedUserId: number) {
+    const event = await this.eventsService.findOne(eventId);
 
+    if (!event) throw new NotFoundException('Event not found');
+    
     if (event.createdByUserId !== inviterId) {
       throw new ForbiddenException('Seul le créateur peut inviter');
     }
@@ -31,7 +33,7 @@ export class InvitationsService {
     return invitation;
   }
 
-  accept(invitationId: number, userId: number) {
+  async accept(invitationId: number, userId: number) {
     const invitation = this.invitations.find((i) => i.id === invitationId);
 
     if (!invitation) throw new NotFoundException();
@@ -39,7 +41,7 @@ export class InvitationsService {
     if (invitation.status !== 'PENDING') throw new ForbiddenException();
 
     invitation.status = 'ACCEPTED';
-    this.eventsService.addParticipant(invitation.eventId, userId);
+    await this.eventsService.addParticipant(invitation.eventId, userId);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

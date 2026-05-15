@@ -1,93 +1,38 @@
-import {
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
-import { CreateEventDto } from './dto/create-event.dto';
-import { UpdateEventDto } from './dto/update-event.dto';
-
-export interface EventEntity {
-  id: number;
-  title: string;
-  description?: string;
-  date: string;
-  location: string;
-
-  createdByUserId: number;
-  status: 'DRAFT' | 'PUBLISHED';
-
-  participants: number[];
-}
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Event } from './event.entity';
 
 @Injectable()
 export class EventsService {
-  private events: EventEntity[] = [];
+  constructor(
+    @InjectRepository(Event)
+    private eventsRepository: Repository<Event>,
+  ) {}
 
-  create(createEventDto: CreateEventDto, userId: number): EventEntity {
-    const newEvent: EventEntity = {
-      id: Date.now(),
-      ...createEventDto,
-      createdByUserId: userId,
-      status: 'DRAFT',
-      participants: [],
-    };
-
-    this.events.push(newEvent);
-    return newEvent;
+  async findAll(): Promise<Event[]> {
+    return this.eventsRepository.find();
   }
 
-  publish(eventId: number, userId: number): EventEntity {
-    const event = this.findOne(eventId);
+  async create(eventData: Partial<Event>): Promise<Event> {
+    const newEvent = this.eventsRepository.create(eventData);
+    return this.eventsRepository.save(newEvent);
+  }
 
-    if (event.createdByUserId !== userId) {
-      throw new ForbiddenException('Vous ne pouvez pas publier cet évènement');
+  async findOne(id: number): Promise<Event | null> {
+    return this.eventsRepository.findOne({ where: { id } });
+  }
+
+  async addParticipant(eventId: number, userId: number): Promise<Event | null> {
+    const event = await this.findOne(eventId);
+    if (!event) return null;
+    
+    const participantIds = event.participantIds || [];
+    if (!participantIds.includes(userId)) {
+      participantIds.push(userId);
+      event.participantIds = participantIds;
+      return this.eventsRepository.save(event);
     }
-
-    event.status = 'PUBLISHED';
     return event;
-  }
-
-  findAll(): EventEntity[] {
-    return this.events;
-  }
-
-  findOne(id: number): EventEntity {
-    const event = this.events.find((e) => e.id === id);
-    if (!event) throw new NotFoundException('Évènement introuvable');
-    return event;
-  }
-
-  update(
-    id: number,
-    updateEventDto: UpdateEventDto,
-    userId: number,
-  ): EventEntity {
-    const event = this.findOne(id);
-
-    if (event.createdByUserId !== userId) {
-      throw new ForbiddenException('Modification interdite');
-    }
-
-    Object.assign(event, updateEventDto);
-    return event;
-  }
-
-  remove(id: number, userId: number): EventEntity {
-    const index = this.events.findIndex((e) => e.id === id);
-    if (index === -1) throw new NotFoundException();
-
-    if (this.events[index].createdByUserId !== userId) {
-      throw new ForbiddenException();
-    }
-
-    return this.events.splice(index, 1)[0];
-  }
-
-  addParticipant(eventId: number, userId: number) {
-    const event = this.findOne(eventId);
-
-    if (!event.participants.includes(userId)) {
-      event.participants.push(userId);
-    }
   }
 }
