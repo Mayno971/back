@@ -7,6 +7,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { Event } from '../events/event.entity';
+import { Invitation } from 'src/invitations/invitation.entity';
 
 @Entity()
 export class User {
@@ -37,4 +38,7 @@ export class User {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @OneToMany(() => Invitation, (invitation) => invitation.user)
+  invitations: Invitation[];
 }

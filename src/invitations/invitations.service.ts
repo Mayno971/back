@@ -1,54 +1,64 @@
 import {
   Injectable,
-  ForbiddenException,
   NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
-import { EventsService } from '../events/events.service';
-import { Invitation } from './invitation.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+
+import { Invitation, InvitationStatus } from './invitation.entity';
 
 @Injectable()
 export class InvitationsService {
-  private invitations: Invitation[] = [];
+  constructor(
+    @InjectRepository(Invitation)
+    private invitationRepository: Repository<Invitation>,
+  ) {}
 
-  constructor(private readonly eventsService: EventsService) {}
+  async getUserInvitations(userId: string) {
+    return this.invitationRepository.find({
+      where: {
+        user: { id: userId },
+      },
+      relations: ['event', 'event.creator'],
+    });
+  }
 
-  async invite(eventId: number, inviterId: number, invitedUserId: number) {
-    const event = await this.eventsService.findOne(eventId);
+  async accept(id: string, userId: string) {
+    const invitation = await this.invitationRepository.findOne({
+      where: { id },
+      relations: ['user'],
+    });
 
-    if (!event) throw new NotFoundException('Event not found');
-    
-    if (event.createdByUserId !== inviterId) {
-      throw new ForbiddenException('Seul le créateur peut inviter');
+    if (!invitation) {
+      throw new NotFoundException('Invitation introuvable');
     }
 
-    const invitation: Invitation = {
-      id: Date.now(),
-      eventId,
-      invitedUserId,
-      status: 'PENDING',
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-    };
+    if (invitation.user.id !== userId) {
+      throw new ForbiddenException('Tu ne peux pas accepter cette invitation');
+    }
 
-    this.invitations.push(invitation);
-    return invitation;
+    invitation.status = InvitationStatus.ACCEPTED;
+
+    return this.invitationRepository.save(invitation);
   }
 
-  async accept(invitationId: number, userId: number) {
-    const invitation = this.invitations.find((i) => i.id === invitationId);
+  async decline(id: string, userId: string) {
+    const invitation = await this.invitationRepository.findOne({
+      where: { id },
+      relations: ['user'],
+    });
 
-    if (!invitation) throw new NotFoundException();
-    if (invitation.invitedUserId !== userId) throw new ForbiddenException();
-    if (invitation.status !== 'PENDING') throw new ForbiddenException();
+    if (!invitation) {
+      throw new NotFoundException('Invitation introuvable');
+    }
 
-    invitation.status = 'ACCEPTED';
-    await this.eventsService.addParticipant(invitation.eventId, userId);
-  }
+    if (invitation.user.id !== userId) {
+      throw new ForbiddenException('Tu ne peux pas refuser cette invitation');
+    }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  decline(invitationId: number, userId: number) {
-    const invitation = this.invitations.find((i) => i.id === invitationId);
-    if (!invitation) throw new NotFoundException();
+    invitation.status = InvitationStatus.DECLINED;
 
-    invitation.status = 'DECLINED';
+    return this.invitationRepository.save(invitation);
   }
 }
