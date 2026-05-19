@@ -5,7 +5,6 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { Role } from './roles.enum';
 import { UsersService } from 'src/users/users.service';
 import { RegisterDto } from './dto/register.dto';
 
@@ -17,23 +16,27 @@ export class AuthService {
   ) {}
 
   async register(registerDto: RegisterDto) {
-    const { email, password, role } = registerDto;
+    const { email, password, firstName, lastName } = registerDto;
+
     const existingUser = await this.usersService.findOneByEmail(email);
     if (existingUser) {
       throw new ConflictException('Un utilisateur avec cet email existe déjà');
     }
 
-    const saltRounds = 10;
-    const hashedPasswords = await bcrypt.hash(password, saltRounds);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await this.usersService.create({
       email,
-      passwordHash: hashedPasswords,
-      ...(role && { role }),
+      passwordHash: hashedPassword,
+      firstName,
+      lastName,
     });
-    const payload = { sub: user.id, email: user.email, role: user.role };
+
+    const payload = { sub: user.id, email: user.email };
+
     return {
       access_token: await this.jwtService.signAsync(payload),
+      user: this.usersService.sanitize(user),
     };
   }
 
@@ -53,11 +56,11 @@ export class AuthService {
     const payload = {
       sub: user.id,
       email: user.email,
-      role: user.role,
     };
 
     return {
       access_token: await this.jwtService.signAsync(payload),
+      user: this.usersService.sanitize(user),
     };
   }
 }
