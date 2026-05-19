@@ -1,5 +1,12 @@
-import { Invitation } from 'src/invitations/invitation.entity';
-import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  OneToMany,
+  ManyToOne,
+} from 'typeorm';
+import { Invitation } from '../invitations/invitation.entity';
+import { User } from '../users/user.entity';
 
 @Entity('events')
 export class Event {
@@ -24,12 +31,11 @@ export class Event {
   @Column({ nullable: true, type: 'text' })
   description: string;
 
-  @Column({ nullable: true })
-  createdByUserId: number;
-
   @Column({ type: 'simple-json', nullable: true })
-  participantIds: number[];
-  creator: any;
+  participantIds: string[];
+
+  @ManyToOne(() => User, (user) => user.events, { onDelete: 'CASCADE' })
+  creator: User;
 
   @OneToMany(() => Invitation, (inv) => inv.event, {
     cascade: true,

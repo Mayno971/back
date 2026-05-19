@@ -7,7 +7,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { Event } from '../events/event.entity';
-import { Invitation } from 'src/invitations/invitation.entity';
+import { Invitation } from '../invitations/invitation.entity';
 
 @Entity()
 export class User {
@@ -29,7 +29,6 @@ export class User {
   @Column({ nullable: true })
   avatarUrl: string;
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   @OneToMany(() => Event, (event) => event.creator)
   events: Event[];
 
