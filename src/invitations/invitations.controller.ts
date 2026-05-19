@@ -1,21 +1,52 @@
-import { Controller, Post, Param, UseGuards } from '@nestjs/common';
-import { InvitationsService } from './invitations.service';
+import {
+  Controller,
+  Get,
+  Patch,
+  Param,
+  UseGuards,
+  Req,
+  NotFoundException,
+} from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { Request } from 'express';
+import { InvitationsService } from './invitations.service';
 
-@UseGuards(JwtAuthGuard)
+interface AuthRequest extends Request {
+  user: {
+    id: string;
+    email: string;
+  };
+}
+
 @Controller('invitations')
+@UseGuards(JwtAuthGuard)
 export class InvitationsController {
   constructor(private readonly invitationsService: InvitationsService) {}
 
-  private userId = 2;
-
-  @Post(':id/accept')
-  accept(@Param('id') id: string) {
-    return this.invitationsService.accept(+id, this.userId);
+  @Get('me')
+  async getMyInvitations(@Req() req: AuthRequest) {
+    return this.invitationsService.getUserInvitations(req.user.id);
   }
 
-  @Post(':id/decline')
-  decline(@Param('id') id: string) {
-    return this.invitationsService.decline(+id, this.userId);
+  @Patch(':id/accept')
+  async acceptInvitation(@Param('id') id: string, @Req() req: AuthRequest) {
+    const invitation = await this.invitationsService.accept(id, req.user.id);
+
+    if (!invitation) {
+      throw new NotFoundException('Invitation non trouvée');
+    }
+
+    return invitation;
+  }
+
+  @Patch(':id/decline')
+  async declineInvitation(@Param('id') id: string, @Req() req: AuthRequest) {
+    const invitation = await this.invitationsService.decline(id, req.user.id);
+
+    if (!invitation) {
+      throw new NotFoundException('Invitation non trouvée');
+    }
+
+    return invitation;
   }
 }

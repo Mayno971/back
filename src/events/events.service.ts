@@ -1,37 +1,66 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+
 import { Event } from './event.entity';
+import { Invitation } from '../invitations/invitation.entity';
+import { UsersService } from '../users/users.service';
+import { CreateEventDto } from './dto/create-event.dto';
 
 @Injectable()
 export class EventsService {
   constructor(
     @InjectRepository(Event)
     private eventsRepository: Repository<Event>,
+
+    @InjectRepository(Invitation)
+    private invitationRepository: Repository<Invitation>,
+
+    private usersService: UsersService,
   ) {}
 
   async findAll(): Promise<Event[]> {
-    return this.eventsRepository.find();
+    return this.eventsRepository.find({
+      relations: ['creator', 'invitations'],
+    });
   }
 
-  async create(eventData: Partial<Event>): Promise<Event> {
-    const newEvent = this.eventsRepository.create(eventData);
-    return this.eventsRepository.save(newEvent);
-  }
+  async create(dto: CreateEventDto, userId: string): Promise<Event> {
+    const { guests, ...eventData } = dto;
 
-  async findOne(id: number): Promise<Event | null> {
-    return this.eventsRepository.findOne({ where: { id } });
-  }
+    const creator = await this.usersService.findByIdOrFail(userId);
 
-  async addParticipant(eventId: number, userId: number): Promise<Event | null> {
-    const event = await this.findOne(eventId);
-    if (!event) return null;
-    const participantIds = event.participantIds || [];
-    if (!participantIds.includes(userId)) {
-      participantIds.push(userId);
-      event.participantIds = participantIds;
-      return this.eventsRepository.save(event);
+    const event = this.eventsRepository.create({
+      ...eventData,
+      creator,
+    });
+
+    await this.eventsRepository.save(event);
+
+    if (guests?.length) {
+      const invitations = guests.map((guestId) =>
+        this.invitationRepository.create({
+          user: { id: guestId },
+          event: event,
+        }),
+      );
+
+      await this.invitationRepository.save(invitations);
     }
+
+    return this.findOneOrFail(event.id);
+  }
+
+  async findOneOrFail(id: string): Promise<Event> {
+    const event = await this.eventsRepository.findOne({
+      where: { id },
+      relations: ['creator', 'invitations', 'invitations.user'],
+    });
+
+    if (!event) {
+      throw new NotFoundException('Event non trouvé');
+    }
+
     return event;
   }
 }

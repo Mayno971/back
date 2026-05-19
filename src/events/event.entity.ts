@@ -1,9 +1,10 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Invitation } from 'src/invitations/invitation.entity';
+import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
 
 @Entity('events')
 export class Event {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column()
   title: string;
@@ -29,4 +30,9 @@ export class Event {
   @Column({ type: 'simple-json', nullable: true })
   participantIds: number[];
   creator: any;
+
+  @OneToMany(() => Invitation, (inv) => inv.event, {
+    cascade: true,
+  })
+  invitations: Invitation[];
 }
