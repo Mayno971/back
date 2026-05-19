@@ -4,7 +4,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { Role } from './roles.enum';
 
 export interface JwtPayload {
-  sub: number;
+  sub: string; // ✅ correction UUID (string)
   email: string;
   role: Role;
 }
@@ -21,12 +21,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   validate(payload: JwtPayload) {
-    if (!payload?.sub || !payload?.role) {
+    if (!payload?.sub) {
       throw new UnauthorizedException('JWT invalide');
     }
-    console.log('JWT chargé');
+
     return {
-      userId: payload.sub,
+      id: payload.sub,
       email: payload.email,
       role: payload.role,
     };
