@@ -28,6 +28,21 @@ export class UsersService {
     return this.usersRepository.findOne({ where: { email } });
   }
 
+  async findAll(currentUserId?: string, query?: string): Promise<User[]> {
+    const qb = this.usersRepository.createQueryBuilder('user');
+    if (currentUserId) {
+      qb.andWhere('user.id != :currentUserId', { currentUserId });
+    }
+    if (query) {
+      qb.andWhere(
+        '(LOWER(user.firstName) LIKE LOWER(:query) OR LOWER(user.lastName) LIKE LOWER(:query) OR LOWER(user.email) LIKE LOWER(:query))',
+        { query: `%${query}%` }
+      );
+    }
+    qb.limit(20);
+    return qb.getMany();
+  }
+
   async create(userData: Partial<User>): Promise<User> {
     const user = this.usersRepository.create(userData);
     return this.usersRepository.save(user);
