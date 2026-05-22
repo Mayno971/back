@@ -20,14 +20,21 @@ export class InvitationsService {
       where: {
         user: { id: userId },
       },
-      relations: ['event', 'event.creator'],
+
+      relations: {
+        event: {
+          creator: true,
+        },
+      },
     });
   }
 
   async accept(id: string, userId: string) {
     const invitation = await this.invitationRepository.findOne({
       where: { id },
-      relations: ['user'],
+      relations: {
+        user: true,
+      },
     });
 
     if (!invitation) {
@@ -46,7 +53,10 @@ export class InvitationsService {
   async decline(id: string, userId: string) {
     const invitation = await this.invitationRepository.findOne({
       where: { id },
-      relations: ['user'],
+
+      relations: {
+        user: true,
+      },
     });
 
     if (!invitation) {

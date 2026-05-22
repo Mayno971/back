@@ -13,7 +13,7 @@ import { EventsModule } from './events/events.module';
     }),
 
     TypeOrmModule.forRoot({
-      type: 'sqlite',
+      type: 'better-sqlite3',
       database: 'db.sqlite',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       autoLoadEntities: true,

@@ -21,7 +21,7 @@ export class EventsService {
 
   async findAll(): Promise<Event[]> {
     return this.eventsRepository.find({
-      relations: ['creator', 'invitations'],
+      relations: { creator: true, invitations: true },
     });
   }
 
@@ -54,7 +54,13 @@ export class EventsService {
   async findOneOrFail(id: string): Promise<Event> {
     const event = await this.eventsRepository.findOne({
       where: { id },
-      relations: ['creator', 'invitations', 'invitations.user'],
+
+      relations: {
+        creator: true,
+        invitations: {
+          user: true,
+        },
+      },
     });
 
     if (!event) {
