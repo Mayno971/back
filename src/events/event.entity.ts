@@ -1,5 +1,12 @@
 import { Invitation } from 'src/invitations/invitation.entity';
-import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
+import { User } from 'src/users/user.entity';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  OneToMany,
+  ManyToOne,
+} from 'typeorm';
 
 @Entity('events')
 export class Event {
@@ -29,7 +36,8 @@ export class Event {
 
   @Column({ type: 'simple-json', nullable: true })
   participantIds: number[];
-  creator: any;
+  @ManyToOne(() => User, (user) => user.events)
+  creator: User;
 
   @OneToMany(() => Invitation, (inv) => inv.event, {
     cascade: true,
