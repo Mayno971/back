@@ -2,12 +2,15 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './user.entity';
+import { NotificationPreference } from '../notifications/entities/notification-preference.entity';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
+    @InjectRepository(NotificationPreference)
+    private preferencesRepository: Repository<NotificationPreference>,
   ) {}
 
   async findById(id: string): Promise<User | null> {
@@ -45,7 +48,15 @@ export class UsersService {
 
   async create(userData: Partial<User>): Promise<User> {
     const user = this.usersRepository.create(userData);
-    return this.usersRepository.save(user);
+    const savedUser = await this.usersRepository.save(user);
+    
+    // Create default notification preferences
+    const defaultPrefs = this.preferencesRepository.create({
+      userId: savedUser.id,
+    });
+    await this.preferencesRepository.save(defaultPrefs);
+    
+    return savedUser;
   }
 
   async update(id: string, data: Partial<User>): Promise<User> {

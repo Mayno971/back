@@ -6,6 +6,7 @@ import { Event } from './event.entity';
 import { Invitation } from '../invitations/invitation.entity';
 import { UsersService } from '../users/users.service';
 import { CreateEventDto } from './dto/create-event.dto';
+import { EventStatus } from './entities/event.entity';
 
 @Injectable()
 export class EventsService {
@@ -21,7 +22,12 @@ export class EventsService {
 
   async findAll(): Promise<Event[]> {
     return this.eventsRepository.find({
-      relations: { creator: true, invitations: true },
+      relations: { 
+        creator: true, 
+        invitations: {
+          user: true,
+        }
+      },
     });
   }
 
@@ -35,20 +41,37 @@ export class EventsService {
       creator,
     });
 
-    await this.eventsRepository.save(event);
+    const savedEvent = await this.eventsRepository.save(event);
 
     if (guests?.length) {
       const invitations = guests.map((guestId) =>
         this.invitationRepository.create({
           user: { id: guestId },
-          event: event,
+          event: savedEvent,
         }),
       );
 
       await this.invitationRepository.save(invitations);
     }
 
-    return this.findOneOrFail(event.id);
+    return this.findOneOrFail(savedEvent.id!);
+  }
+
+  async cancelEvent(eventId: string, userId: string) {
+    const event = await this.eventsRepository.findOne({
+      where: { id: eventId },
+      relations: { creator: true },
+    });
+    
+    if (!event) {
+      throw new NotFoundException('Event non trouvé');
+    }
+    if (!event.creator || event.creator.id !== userId) {
+      throw new NotFoundException('Vous n\'êtes pas autorisé à annuler cet événement');
+    }
+    
+    event.status = EventStatus.CANCELED;
+    return this.eventsRepository.save(event);
   }
 
   async findOneOrFail(id: string): Promise<Event> {

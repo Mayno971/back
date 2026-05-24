@@ -7,40 +7,44 @@ import {
   OneToMany,
   ManyToOne,
 } from 'typeorm';
+import { EventStatus } from './entities/event.entity';
 
 @Entity('events')
 export class Event {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id?: string;
 
   @Column()
-  title: string;
+  title?: string;
 
   @Column()
-  date: string;
+  date?: string;
 
   @Column()
-  hour: string;
+  hour?: string;
 
   @Column({ nullable: true })
-  locationName: string;
+  locationName?: string;
 
   @Column()
-  address: string;
+  address?: string;
 
   @Column({ nullable: true, type: 'text' })
-  description: string;
+  description?: string;
 
   @Column({ nullable: true })
-  createdByUserId: number;
+  createdByUserId?: number;
 
   @Column({ type: 'simple-json', nullable: true })
-  participantIds: number[];
+  participantIds?: number[];
   @ManyToOne(() => User, (user) => user.events)
-  creator: User;
+  creator?: User;
 
   @OneToMany(() => Invitation, (inv) => inv.event, {
     cascade: true,
   })
-  invitations: Invitation[];
+  invitations?: Invitation[];
+
+  @Column({ type: 'varchar', default: EventStatus.PLANNED })
+  status: EventStatus;
 }
