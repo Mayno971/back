@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Req, Patch, Param } from '@nestjs/common';
 import { EventsService } from './events.service';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { CreateEventDto } from './dto/create-event.dto';
@@ -24,5 +24,12 @@ export class EventsController {
   @UseGuards(JwtAuthGuard)
   async createEvent(@Body() dto: CreateEventDto, @Req() req: AuthRequest) {
     return this.eventsService.create(dto, req.user.id);
+  }
+
+  @Patch(':id/cancel')
+  @UseGuards(JwtAuthGuard)
+  async cancelEvent(@Param('id') id: string, @Req() req: any) {
+    // req.user.id contient l'ID de l'utilisateur connecté fourni par ton guard
+    return this.eventsService.cancelEvent(id, req.user.id);
   }
 }

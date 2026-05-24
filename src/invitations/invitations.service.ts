@@ -41,7 +41,7 @@ export class InvitationsService {
       throw new NotFoundException('Invitation introuvable');
     }
 
-    if (invitation.user.id !== userId) {
+    if (String(invitation.user.id) !== String(userId)) {
       throw new ForbiddenException('Tu ne peux pas accepter cette invitation');
     }
 
@@ -63,7 +63,7 @@ export class InvitationsService {
       throw new NotFoundException('Invitation introuvable');
     }
 
-    if (invitation.user.id !== userId) {
+    if (String(invitation.user.id) !== String(userId)) {
       throw new ForbiddenException('Tu ne peux pas refuser cette invitation');
     }
 

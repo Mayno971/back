@@ -5,9 +5,10 @@ import { EventsController } from './events.controller';
 import { Event } from './event.entity';
 import { Invitation } from 'src/invitations/invitation.entity';
 import { UsersModule } from 'src/users/users.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Event, Invitation]), UsersModule],
+  imports: [TypeOrmModule.forFeature([Event, Invitation]), UsersModule, NotificationsModule],
   controllers: [EventsController],
   providers: [EventsService],
   exports: [EventsService],
