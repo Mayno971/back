@@ -18,6 +18,10 @@ export class AuthService {
   async register(registerDto: RegisterDto) {
     const { email, password, firstName, lastName } = registerDto;
 
+    if (!email || !password) {
+      throw new UnauthorizedException('Email and password are required');
+    }
+
     const existingUser = await this.usersService.findOneByEmail(email);
     if (existingUser) {
       throw new ConflictException('Un utilisateur avec cet email existe déjà');
@@ -64,3 +68,4 @@ export class AuthService {
     };
   }
 }
+

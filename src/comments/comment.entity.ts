@@ -5,17 +5,17 @@ import { Event } from 'src/events/event.entity';
 @Entity('comments')
 export class Comment {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id: string | undefined;
 
   @ManyToOne(() => User, (user) => user.id, { onDelete: 'CASCADE' })
-  author: User;
+  author: User | undefined;
 
   @ManyToOne(() => Event, (event) => event.id, { onDelete: 'CASCADE' })
-  event: Event;
+  event: Event | undefined;
 
   @Column({ type: 'text' })
-  content: string;
+  content: string | undefined;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt: Date | undefined;
 }

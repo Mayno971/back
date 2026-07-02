@@ -7,11 +7,14 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { EventsModule } from './events/events.module';
 import { InvitationsModule } from './invitations/invitations.module';
-import { NotificationsModule } from './notifications/notifications.module';
 import { CommentsModule } from './comments/comments.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { RemindersModule } from './reminders/reminders.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
     }),
@@ -41,6 +44,8 @@ import { CommentsModule } from './comments/comments.module';
     InvitationsModule,
     CommentsModule,
     NotificationsModule,
+    RemindersModule,
   ],
 })
 export class AppModule {}
+

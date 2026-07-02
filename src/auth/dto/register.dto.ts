@@ -3,22 +3,20 @@ import {
   IsNotEmpty,
   MinLength,
   IsOptional,
-  IsEnum,
   IsString,
   MaxLength,
 } from 'class-validator';
-import { Role } from '../roles.enum';
 
 export class RegisterDto {
   @IsEmail({}, { message: 'Email invalide' })
   @IsNotEmpty({ message: "L'email est requis" })
-  email: string;
+  email: string | undefined;
 
   @IsNotEmpty({ message: 'Le mot de passe est requis' })
   @MinLength(8, {
     message: 'Le mot de passe doit contenir au moins 8 caractères',
   })
-  password: string;
+  password: string | undefined;
 
   @IsOptional()
   @IsString({ message: 'Le prénom doit être une chaîne de caractères' })
@@ -29,8 +27,5 @@ export class RegisterDto {
   @IsString({ message: 'Le nom doit être une chaîne de caractères' })
   @MaxLength(50, { message: 'Le nom est trop long' })
   lastName?: string;
-
-  @IsOptional()
-  @IsEnum(Role, { message: 'Rôle invalide' })
-  role?: Role;
 }
+

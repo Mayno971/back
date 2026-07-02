@@ -5,6 +5,7 @@ import { Repository } from 'typeorm';
 import { Event } from './event.entity';
 import { Invitation } from '../invitations/invitation.entity';
 import { UsersService } from '../users/users.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { EventStatus } from './entities/event.entity';
 
@@ -18,6 +19,7 @@ export class EventsService {
     private invitationRepository: Repository<Invitation>,
 
     private usersService: UsersService,
+    private notificationsService: NotificationsService,
   ) {}
 
   async findAll(): Promise<Event[]> {
@@ -52,6 +54,25 @@ export class EventsService {
       );
 
       await this.invitationRepository.save(invitations);
+      // create a notification for each invited guest
+      try {
+        const creatorName = creator.firstName || creator.email || 'Quelqu\'un';
+        for (const guestId of guests) {
+          try {
+            await this.notificationsService.createNotification({
+              userId: String(guestId),
+              type: 'INVITE',
+              title: `Invitation: ${savedEvent.title}`,
+              body: `${creatorName} vous a invité à l'événement.`,
+              actionUrl: `/evenement/${savedEvent.id}`,
+            } as any);
+          } catch (e) {
+            // ignore per-user notification failures
+          }
+        }
+      } catch (e) {
+        // ignore overall notification errors
+      }
     }
 
     return this.findOneOrFail(savedEvent.id!);
@@ -71,7 +92,36 @@ export class EventsService {
     }
     
     event.status = EventStatus.CANCELED;
-    return this.eventsRepository.save(event);
+    const saved = await this.eventsRepository.save(event);
+
+    // notify all invited users that the event was cancelled
+    try {
+      const reloaded = await this.findOneOrFail(eventId);
+      const recipients = new Set<string>();
+      if (reloaded.invitations && Array.isArray(reloaded.invitations)) {
+        for (const inv of reloaded.invitations) {
+          if (inv.user && inv.user.id) recipients.add(String(inv.user.id));
+        }
+      }
+
+      for (const uid of recipients) {
+        try {
+          await this.notificationsService.createNotification({
+            userId: uid,
+            type: 'CANCEL',
+            title: `Événement annulé: ${saved.title}`,
+            body: `L'événement ${saved.title} a été annulé par l'organisateur.`,
+            actionUrl: `/evenement/${saved.id}`,
+          } as any);
+        } catch (e) {
+          // ignore per-user notification failures
+        }
+      }
+    } catch (e) {
+      // ignore notification flow errors
+    }
+
+    return saved;
   }
 
   async findOneOrFail(id: string): Promise<Event> {
@@ -91,5 +141,23 @@ export class EventsService {
     }
 
     return event;
+  }
+
+  async findEventsForTomorrow(): Promise<Event[]> {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowString = tomorrow.toISOString().split('T')[0];
+
+    return this.eventsRepository.find({
+      where: {
+        date: tomorrowString,
+        status: EventStatus.PLANNED,
+      },
+      relations: {
+        invitations: {
+          user: true,
+        },
+      },
+    });
   }
 }
