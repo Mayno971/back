@@ -104,6 +104,116 @@ export class CommentsService {
     }
   }
 
+  async findOne(commentId: string): Promise<Comment | null> {
+    return this.commentsRepository.findOne({
+      where: { id: commentId },
+      relations: { author: true, event: { creator: true } },
+    });
+  }
+
+  async remove(commentId: string): Promise<void> {
+    const comment = await this.commentsRepository.findOne({ 
+      where: { id: commentId },
+      relations: { author: true, event: true } 
+    });
+
+    if (!comment || !comment.event?.id) {
+      this.logger.warn(`Comment ${commentId} not found or has no associated event, cannot send deletion notification.`);
+      // On tente quand même de supprimer au cas où...
+      await this.commentsRepository.delete(commentId);
+      return;
+    }
+
+    const { event, author } = comment;
+    const authorId = author?.id;
+    const eventId = event.id;
+
+    await this.commentsRepository.delete(commentId);
+
+    // Notification en tâche de fond
+    this.sendCommentDeletedNotification(eventId, commentId, authorId).catch(e => {
+      this.logger.error(`Asynchronous delete notification failed for comment ${commentId}: ${String(e)}`);
+    });
+  }
+
+  private async sendCommentDeletedNotification(eventId: string, commentId: string, authorId?: string): Promise<void> {
+    try {
+      const event = await this.eventsService.findOneOrFail(eventId);
+      const recipients = new Set<string>();
+
+      if (event.creator?.id) {
+        recipients.add(String(event.creator.id));
+      }
+      if (event.invitations?.length) {
+        for (const inv of event.invitations) {
+          if (inv.user?.id) recipients.add(String(inv.user.id));
+        }
+      }
+
+      // L'auteur du commentaire supprimé n'a pas besoin d'être notifié
+      if (authorId) {
+        recipients.delete(String(authorId));
+      }
+
+      for (const uid of recipients) {
+        try {
+          // Note: On n'utilise pas createNotification car on ne veut pas persister la notif,
+          // on veut juste l'envoyer en temps réel via le socket.
+          this.notificationsService.sendNotificationToUser(uid, {
+            type: 'comment_deleted',
+            eventId,
+            commentId,
+            title: `Un commentaire a été supprimé`,
+            body: `Un commentaire sur l'évènement "${event.title}" a été supprimé.`,
+          });
+        } catch (e) {
+          this.logger.warn(`Failed to send delete-notification to user ${uid} for comment ${commentId}: ${String(e)}`);
+        }
+      }
+    } catch (e) {
+      this.logger.error(`Real-time delete notification setup failed for comment ${commentId}: ${String(e)}`);
+    }
+  }
+
+  async update(commentId: string, content: string): Promise<Comment> {
+    await this.commentsRepository.update(commentId, { content });
+    const updatedComment = await this.findOne(commentId);
+    if (!updatedComment) {
+      throw new Error('Failed to retrieve updated comment');
+    }
+
+    this.sendCommentUpdatedNotification(updatedComment.event.id, updatedComment).catch(e => {
+      this.logger.error(`Asynchronous update notification failed for comment ${commentId}: ${String(e)}`);
+    });
+
+    return updatedComment;
+  }
+
+  private async sendCommentUpdatedNotification(eventId: string, updatedComment: Comment): Promise<void> {
+    const event = await this.eventsService.findOneOrFail(eventId);
+    const recipients = new Set<string>();
+
+    if (event.creator?.id) recipients.add(String(event.creator.id));
+    if (event.invitations?.length) {
+      for (const inv of event.invitations) {
+        if (inv.user?.id) recipients.add(String(inv.user.id));
+      }
+    }
+    
+    // Also notify the author of the change
+    if (updatedComment.author?.id) {
+        recipients.add(String(updatedComment.author.id));
+    }
+
+    for (const uid of recipients) {
+      this.notificationsService.sendNotificationToUser(uid, {
+        type: 'comment_updated',
+        eventId,
+        comment: updatedComment,
+      });
+    }
+  }
+
   /**
    * Helper pour formater proprement le nom de l'auteur
    */

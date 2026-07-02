@@ -6,9 +6,12 @@ import { Comment } from './comment.entity';
 import { EventsModule } from 'src/events/events.module';
 import { NotificationsModule } from 'src/notifications/notifications.module';
 
+import { CommentAuthorOnlyGuard } from 'src/auth/comment-author-only.guard';
+import { CommentPermissionsGuard } from 'src/auth/comment-permissions.guard';
+
 @Module({
   imports: [TypeOrmModule.forFeature([Comment]), EventsModule, NotificationsModule],
-  providers: [CommentsService],
+  providers: [CommentsService, CommentPermissionsGuard, CommentAuthorOnlyGuard],
   controllers: [CommentsController],
   exports: [CommentsService],
 })

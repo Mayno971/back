@@ -48,7 +48,7 @@ export class NotificationsService {
     return prefs;
   }
 
-  async updatePreferences(userId: string, data: Partial<NotificationPreference>): Promise<NotificationPreference> {
+  updatePreferences(userId: string, data: Partial<NotificationPreference>): Promise<NotificationPreference> {
     let prefs = await this.preferencesRepository.findOne({ where: { userId } });
     if (!prefs) {
       prefs = this.preferencesRepository.create({ userId, ...data });
@@ -57,4 +57,10 @@ export class NotificationsService {
     }
     return this.preferencesRepository.save(prefs);
   }
-}
+
+  sendNotificationToUser(userId: string, payload: any) {
+    if (this.gateway && typeof this.gateway.sendToUser === 'function') {
+      this.gateway.sendToUser(userId, payload);
+    }
+  }
+  }
