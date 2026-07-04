@@ -29,4 +29,10 @@ export class Invitation {
     default: InvitationStatus.PENDING,
   })
   status: InvitationStatus;
+
+  @Column({ default: 0 })
+  guests: number;
+
+  @Column({ type: 'text', nullable: true })
+  specificNeeds: string;
 }

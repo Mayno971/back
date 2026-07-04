@@ -6,10 +6,12 @@ import {
   UseGuards,
   Req,
   NotFoundException,
+  Body,
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { Request } from 'express';
 import { InvitationsService } from './invitations.service';
+import { UpdateInvitationDto } from './dto/update-invitation.dto';
 
 interface AuthRequest extends Request {
   user: {
@@ -29,8 +31,16 @@ export class InvitationsController {
   }
 
   @Patch(':id/accept')
-  async acceptInvitation(@Param('id') id: string, @Req() req: AuthRequest) {
-    const invitation = await this.invitationsService.accept(id, req.user.id);
+  async acceptInvitation(
+    @Param('id') id: string,
+    @Req() req: AuthRequest,
+    @Body() data: UpdateInvitationDto,
+  ) {
+    const invitation = await this.invitationsService.accept(
+      id,
+      req.user.id,
+      data,
+    );
 
     if (!invitation) {
       throw new NotFoundException('Invitation non trouvée');

@@ -8,6 +8,8 @@ import { Repository } from 'typeorm';
 
 import { Invitation, InvitationStatus } from './invitation.entity';
 
+import { UpdateInvitationDto } from './dto/update-invitation.dto';
+
 @Injectable()
 export class InvitationsService {
   constructor(
@@ -29,7 +31,7 @@ export class InvitationsService {
     });
   }
 
-  async accept(id: string, userId: string) {
+  async accept(id: string, userId: string, data: UpdateInvitationDto) {
     const invitation = await this.invitationRepository.findOne({
       where: { id },
       relations: {
@@ -46,6 +48,8 @@ export class InvitationsService {
     }
 
     invitation.status = InvitationStatus.ACCEPTED;
+    invitation.guests = data.guests ?? 0;
+    invitation.specificNeeds = data.specificNeeds ?? '';
 
     return this.invitationRepository.save(invitation);
   }
@@ -58,6 +62,7 @@ export class InvitationsService {
         user: true,
       },
     });
+
 
     if (!invitation) {
       throw new NotFoundException('Invitation introuvable');

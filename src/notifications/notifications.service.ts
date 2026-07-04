@@ -48,7 +48,7 @@ export class NotificationsService {
     return prefs;
   }
 
-  updatePreferences(userId: string, data: Partial<NotificationPreference>): Promise<NotificationPreference> {
+  async updatePreferences(userId: string, data: Partial<NotificationPreference>): Promise<NotificationPreference> {
     let prefs = await this.preferencesRepository.findOne({ where: { userId } });
     if (!prefs) {
       prefs = this.preferencesRepository.create({ userId, ...data });
