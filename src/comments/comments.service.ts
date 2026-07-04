@@ -124,16 +124,15 @@ export class CommentsService {
       return;
     }
 
-    const { event, author } = comment;
-    const authorId = author?.id;
-    const eventId = event.id;
+    const authorId = comment.author?.id;
+    const eventId = comment.event.id;
 
-    await this.commentsRepository.delete(commentId);
-
-    // Notification en tâche de fond
     this.sendCommentDeletedNotification(eventId, commentId, authorId).catch(e => {
       this.logger.error(`Asynchronous delete notification failed for comment ${commentId}: ${String(e)}`);
     });
+
+    await this.commentsRepository.delete(commentId);
+
   }
 
   private async sendCommentDeletedNotification(eventId: string, commentId: string, authorId?: string): Promise<void> {
@@ -182,9 +181,14 @@ export class CommentsService {
       throw new Error('Failed to retrieve updated comment');
     }
 
-    this.sendCommentUpdatedNotification(updatedComment.event.id, updatedComment).catch(e => {
-      this.logger.error(`Asynchronous update notification failed for comment ${commentId}: ${String(e)}`);
-    });
+    const eventId = updatedComment.event?.id;
+    if (!eventId) {
+      this.logger.warn(`Updated comment ${commentId} has no associated event, cannot send update notification.`);
+    } else {
+      this.sendCommentUpdatedNotification(eventId, updatedComment).catch(e => {
+          this.logger.error(`Asynchronous update notification failed for comment ${commentId}: ${String(e)}`);
+        });
+    }
 
     return updatedComment;
   }

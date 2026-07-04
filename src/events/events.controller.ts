@@ -26,6 +26,11 @@ export class EventsController {
     return this.eventsService.create(dto, req.user.id);
   }
 
+  @Get(':id')
+  async getEventById(@Param('id') id: string) {
+    return this.eventsService.findOneOrFail(id);
+  }
+
   @Patch(':id/cancel')
   @UseGuards(JwtAuthGuard)
   async cancelEvent(@Param('id') id: string, @Req() req: any) {
